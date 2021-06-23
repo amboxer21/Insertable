@@ -1,34 +1,55 @@
+require 'mysql2'
+require 'thread'
 require 'ostruct'
 require 'optparse'
+
+require './requires.rb'
 
 class Insertable
 
   attr_accessor :data
 
   def initialize
-    @data = Hash.new
+    @data     = Hash.new
+    @mutex    = Mutex.new
+
+    @host     = EnvConfig.instance.db_host
+    @database = EnvConfig.instance.db_database
+    @username = EnvConfig.instance.db_username
+    @password = EnvConfig.instance.db_password
+
+    @client   = Mysql2::Client.new(
+      :host => @host, :username => @username, :password => @password, :database => @database
+    )
   end
 
   def usage(message=nil)
 
     puts "\n    ** #{message} ** \n" unless message.nil? or message.empty?
 
-    puts "\n\n    Usage example: ruby #{$PROGRAM_NAME} -fquery.txt -tcars --fields make, model --without-id\n"
+    puts "\n\n    Usage example: ruby #{$PROGRAM_NAME} -q'select * from cars limit 10' -tcars --fields make, model --without-id\n"
     puts "\n    [ Option with * is mandatory! ]\n\n"
     puts "      Option:\n        --help,            Display this help messgage.\n"
-    puts "    * Option:\n        --table,    -t,    The name of the table that you are querying.\n"
-    puts "    * Option:\n        --filename, -f,    File with MySQL query for the program to parse.\n"
+    puts "    * Option:\n        --table,       -t, The name of the table that you are querying.\n"
+    puts "    * Option:\n        --mysql-query, -q, MySQL query for the program to parse without ; or \G terminator.\n"
     puts "      Option:\n        --without-id,      Remove the id field name and the id from the printed insertable.\n"
     puts "    * Option:\n        --fields f1,f2     This is the first and last field of the specified table that you are querying.\n"
     exit
   end
 
-  def strip_leading_whitespace(line)
-    line.gsub(/^[ \t]*/,"")
-  end
-
-  def format_line(line)
-    line.gsub(/: /," : ")
+  def mysql_query(query)
+    begin
+      @mutex.synchronize do 
+        results = @client.query(query)
+        begin
+          return results
+        rescue Exception => exception
+          puts "Insertable.temp exception(1) => #{exception}"
+        end
+      end
+    rescue Exception => exception
+      puts "Insertable.temp exception(2) => #{exception}"
+    end
   end
 
   def print_insertable(insertable_data,options)
@@ -44,34 +65,30 @@ class Insertable
         values = values.to_s.gsub(/[\[\]]/,"")
         fields = fields.to_s.gsub(/[\[\]\"]/,"")
 
-        puts "insert into #{options.table} (#{fields}}) values (#{values});"
+        puts "insert into #{options.table} (#{fields}) values (#{values});"
 
       end
     end
   end
 
-  def format_insertable(filename,fields)
+  def format_insertable(query,fields)
   
     count = 0
     
-    File.open(filename,'r').each do |line|
-
-      line = format_line(strip_leading_whitespace(line))
-  
-      key  = line.split(/ : /)[0]
-      val  = line.split(/ : /)[1]
+    mysql_query(query).each do |line|
 
       field1 = fields[0] 
       field2 = fields[1]
 
-      @data[count] = {fields: [], values: []} if @data[count].nil?
-      [@data.dig(count, :fields), @data.dig(count, :values)].each {|a| a.clear} if key.eql?(field1)
-  
-      @data.dig(count, :fields).push key.nil? ? String.new : key.chomp
-      @data.dig(count, :values).push val.nil? ? String.new : val.chomp
+      line.each do |key,val|
+        @data[count] = {fields: [], values: []} if @data[count].nil?
+        [@data.dig(count, :fields), @data.dig(count, :values)].each {|a| a.clear} if key.eql?(field1)
+        
+        @data.dig(count, :fields).push key.nil? ? String.new : key
+        @data.dig(count, :values).push val.nil? ? String.new : val
 
-      count += 1 if key.eql?(field2)
-      
+        count += 1 if key.eql?(field2)
+      end
     end
   end
 
@@ -85,11 +102,11 @@ OptionParser.new do |opt|
   opt.on('-tTABLE','--table TABLE', String) {|table| options.table = table }
   opt.on('--without-id',TrueClass) {|without_id| options.without_id = without_id}
   opt.on('--fields f1,f2', Array) {|fields| options.fields = fields }
-  opt.on('-fFILENAME', '--filename FILENAME', String) {|filename| options.filename = filename }
+  opt.on('-qQUERY', '--mysql-query QUERY', String) {|query| options.query = query }
 end.parse!
 
-criteria1  = !(options.filename.nil? || options.fields.nil?) 
+criteria1  = !(options.query.nil? || options.fields.nil?) 
 criteria2  = !(options.table.nil? || !options.fields.count.eql?(2))
 
 (criteria1 && criteria2) ?
-  (insertable.format_insertable(options.filename,options.fields); insertable.print_insertable(insertable.data,options)) : insertable.usage
+  (insertable.format_insertable(options.query,options.fields); insertable.print_insertable(insertable.data,options)) : insertable.usage
