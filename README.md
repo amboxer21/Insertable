@@ -30,3 +30,21 @@ Then execute that file containing your insertables with:
 chmod +x file
 ./file
 ```
+
+**Usage:**
+```javascript
+    Usage example: ruby Insertable.rb -q'select * from cdrs limit 10' -tcars --fields make, model --without-id
+
+    [ Option with * is mandatory! ]
+
+      Option:
+        --help,            Display this help messgage.
+    * Option:
+        --table,       -t, The name of the table that you are querying.
+    * Option:
+        --mysql-query, -q, MySQL query for the program to parse without ; or G terminator.
+      Option:
+        --without-id,      Remove the id field name and the id from the printed insertable.
+    * Option:
+        --fields f1,f2     This is the first and last field of the specified table that you are querying.     
+```
