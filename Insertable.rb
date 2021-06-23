@@ -29,7 +29,7 @@ class Insertable
 
     puts "\n    ** #{message} ** \n" unless message.nil? or message.empty?
 
-    puts "\n\n    Usage example: ruby #{$PROGRAM_NAME} -q'select * from cars limit 10' -tcars --fields make, model --without-id\n"
+    puts "\n\n    Usage example: ruby #{$PROGRAM_NAME} -q'select * from cars limit 10' -tcars --fields make,model --without-id\n"
     puts "\n    [ Option with * is mandatory! ]\n\n"
     puts "      Option:\n        --help,            Display this help messgage.\n"
     puts "    * Option:\n        --table,       -t, The name of the table that you are querying.\n"
@@ -40,8 +40,9 @@ class Insertable
   end
 
   def remove_timezone_from_date(string)
+    string = string.to_s
     begin
-      if string.to_s.match(/[-:]/)
+      if string.match(/[-]/) && string.match(/[:]/) && string.match(/\s/)
         return DateTime.parse(string.to_s).strftime('%Y-%m-%d %H:%M:%S').to_s
       else
         raise ArgumentError
@@ -79,6 +80,8 @@ class Insertable
         values = values.to_s.gsub(/[\[\]]/,"")
         fields = fields.to_s.gsub(/[\[\]\"]/,"")
 
+        values = values.to_s.gsub(/\"NULL\"/,"NULL") if values.to_s.eql?('"NULL"')
+
         puts "insert into #{options.table} (#{fields}) values (#{values});"
 
       end
@@ -100,8 +103,8 @@ class Insertable
         @data[count] = {fields: [], values: []} if @data[count].nil?
         [@data.dig(count, :fields), @data.dig(count, :values)].each {|a| a.clear} if key.eql?(field1)
         
-        @data.dig(count, :fields).push key.nil? ? String.new : key.to_s
-        @data.dig(count, :values).push val.nil? ? String.new : val.to_s
+        @data.dig(count, :fields).push (key.nil? || key.eql?('')) ? String.new : key.to_s
+        @data.dig(count, :values).push (val.nil? || val.eql?('')) ? String.new : val.to_s
 
         count += 1 if key.eql?(field2)
       end
