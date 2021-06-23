@@ -27,7 +27,26 @@ class Insertable
     line.gsub(/: /," : ")
   end
 
-  def convert_to_insertable(filename,fields)
+  def converted_insertable(insertable_data,options)
+    (0..insertable_data.count.to_i).each do |iteration|
+
+      values = insertable_data.dig(iteration, :values)
+      fields = insertable_data.dig(iteration, :fields)
+
+      unless [values,fields].any? {|a| a.nil?}
+
+        [values,fields].each {|item| item.delete_at(0) if fields[0].eql?(options.fields[0]) } if options.without_id
+
+        values = values.to_s.gsub(/[\[\]]/,"")
+        fields = fields.to_s.gsub(/[\[\]\"]/,"")
+
+        puts "insert into #{options.table} (#{fields}}) values (#{values});"
+
+      end
+    end
+  end
+
+  def format_insertable(filename,fields)
   
     count = 0
     
@@ -59,30 +78,15 @@ fields_opt_help = 'This is the first and the last field of the table you are que
 
 OptionParser.new do |opt|
   opt.on('--help', TrueClass) {|help| options.help = help }
-  opt.on('tTABLE','--table TABLE', String) {|table| options.table = table }
+  opt.on('-tTABLE','--table TABLE', String) {|table| options.table = table }
   opt.on('--without-id',TrueClass) {|without_id| options.without_id = without_id}
   opt.on('--fields f1,f2', Array, fields_opt_help) {|fields| options.fields = fields }
   opt.on('-fFILENAME', '--filename FILENAME', String) {|filename| options.filename = filename }
 end.parse!
 
 insertable = Insertable.new
-criteria   = !(options.filename.nil? || options.fields.nil? || options.help || options.table.nil? || !options.fields.count.eql?(2))
+criteria1  = !(options.filename.nil? || options.fields.nil?) 
+criteria2  = !(options.help || options.table.nil? || !options.fields.count.eql?(2))
 
-criteria ? insertable.convert_to_insertable(options.filename,options.fields) : insertable.usage
-
-(0..insertable.data.count.to_i).each do |iteration|
-
-  values = insertable.data.dig(iteration, :values)
-  fields = insertable.data.dig(iteration, :fields)
-
-  unless [values,fields].any? {|a| a.nil?}
-
-    [values,fields].each {|item| item.delete_at(0) if fields[0].eql?(options.fields[0]) } if options.without_id
-
-    values = values.to_s.gsub(/[\[\]]/,"")
-    fields = fields.to_s.gsub(/[\[\]\"]/,"")
-
-    puts "insert into #{options.table} (#{fields}}) values (#{values});"
-
-  end
-end
+(criteria1 && criteria2) ?
+  (insertable.format_insertable(options.filename,options.fields); insertable.converted_insertable(insertable.data,options)) : insertable.usage
