@@ -5,7 +5,7 @@ aliases:
 default_env:
   adapter: mysql2
   host: prod-host.example.com
-  database: database_name
+  database: prod-database_name
   username: username
   password: password
   pool: 10
@@ -18,7 +18,7 @@ production:
   database:
     adapter: mysql2
     host: prod-host.example.com
-    database: database_name
+    database: prod-database_name
     username: username
     password: password
     pool: 10
