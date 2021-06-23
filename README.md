@@ -17,9 +17,16 @@ INSERTABLE_ENV=production ruby Insertable.rb -q"select * from cars where created
 ```
 
 **Example:**
+> **-f** is for force. Remove this is you're absolutely not sure this is what you want!
 ```javascript
 mysql -f -uusername -p'password' database << EOF
   insert into cars (created_at,make, model) values ('nissan', 'rogue', '2021-04-06 11:46:28');
   insert into cars (created_at,make, model) values ('nissan', 'Murano', '2021-04-06 11:54:12');
 EOF
+```
+
+Then execute that file with:
+```javascript
+chmod +x file
+./file
 ```
