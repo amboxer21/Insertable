@@ -13,9 +13,12 @@ class Insertable
 
     puts "\n    ** #{message} ** \n" unless message.nil? or message.empty?
 
-    puts "\n\n    Usage: #{$PROGRAM_NAME} --file-name=FILENAME or -fFILENAME\n\n"
-    puts "    Option:\n        --help,            Display this help messgage.\n\n"
-    puts "    Option:\n        --filename, -f,    File for the program to tail.\n"
+    puts "\n\n    Usage example: ruby #{$PROGRAM_NAME} -fquery.txt -tcars --fields make, model --without-id\n\n"
+    puts "    Option:\n        --help,            Display this help messgage.\n"
+    puts "    Option:\n        --table,    -t,    The name of the table that you are querying.\n"
+    puts "    Option:\n        --filename, -f,    File with MySQL query for the program to parse.\n"
+    puts "    Option:\n        --without-id,      Remove the id field name and the id from the printed insertable.\n"
+    puts "    Option:\n        --fields f1,f2     This is the first and last field of the specified table that you are querying.\n"
     exit
   end
 
@@ -27,7 +30,7 @@ class Insertable
     line.gsub(/: /," : ")
   end
 
-  def converted_insertable(insertable_data,options)
+  def print_insertable(insertable_data,options)
     (0..insertable_data.count.to_i).each do |iteration|
 
       values = insertable_data.dig(iteration, :values)
@@ -73,20 +76,23 @@ class Insertable
 
 end
 
-options = OpenStruct.new 
-fields_opt_help = 'This is the first and the last field of the table you are querying.'
+options    = OpenStruct.new 
+insertable = Insertable.new
 
 OptionParser.new do |opt|
-  opt.on('--help', TrueClass) {|help| options.help = help }
+  opt.on('--help', TrueClass) {|help| insertable.usage }
   opt.on('-tTABLE','--table TABLE', String) {|table| options.table = table }
   opt.on('--without-id',TrueClass) {|without_id| options.without_id = without_id}
-  opt.on('--fields f1,f2', Array, fields_opt_help) {|fields| options.fields = fields }
+  opt.on('--fields f1,f2', Array) {|fields| options.fields = fields }
   opt.on('-fFILENAME', '--filename FILENAME', String) {|filename| options.filename = filename }
 end.parse!
 
-insertable = Insertable.new
 criteria1  = !(options.filename.nil? || options.fields.nil?) 
-criteria2  = !(options.help || options.table.nil? || !options.fields.count.eql?(2))
+criteria2  = !(options.table.nil? || !options.fields.count.eql?(2))
 
-(criteria1 && criteria2) ?
-  (insertable.format_insertable(options.filename,options.fields); insertable.converted_insertable(insertable.data,options)) : insertable.usage
+if (criteria1 && criteria2) 
+  insertable.format_insertable(options.filename,options.fields)
+  insertable.print_insertable(insertable.data,options)
+else
+  insertable.usage
+end
