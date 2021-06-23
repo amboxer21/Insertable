@@ -1,3 +1,4 @@
+require 'date'
 require 'mysql2'
 require 'thread'
 require 'ostruct'
@@ -10,6 +11,7 @@ class Insertable
   attr_accessor :data
 
   def initialize
+
     @data     = Hash.new
     @mutex    = Mutex.new
 
@@ -35,6 +37,18 @@ class Insertable
     puts "      Option:\n        --without-id,      Remove the id field name and the id from the printed insertable.\n"
     puts "    * Option:\n        --fields f1,f2     This is the first and last field of the specified table that you are querying.\n"
     exit
+  end
+
+  def remove_timezone_from_date(string)
+    begin
+      if string.to_s.match(/[-:]/)
+        return DateTime.parse(string.to_s).strftime('%Y-%m-%d %H:%M:%S').to_s
+      else
+        raise ArgumentError
+      end
+    rescue ArgumentError
+      return string
+    end
   end
 
   def mysql_query(query)
@@ -73,19 +87,21 @@ class Insertable
 
   def format_insertable(query,fields)
   
-    count = 0
+    count  = 0
+    field1 = fields[0] 
+    field2 = fields[1]
     
     mysql_query(query).each do |line|
 
-      field1 = fields[0] 
-      field2 = fields[1]
-
       line.each do |key,val|
+
+        val = remove_timezone_from_date(val)
+
         @data[count] = {fields: [], values: []} if @data[count].nil?
         [@data.dig(count, :fields), @data.dig(count, :values)].each {|a| a.clear} if key.eql?(field1)
         
-        @data.dig(count, :fields).push key.nil? ? String.new : key
-        @data.dig(count, :values).push val.nil? ? String.new : val
+        @data.dig(count, :fields).push key.nil? ? String.new : key.to_s
+        @data.dig(count, :values).push val.nil? ? String.new : val.to_s
 
         count += 1 if key.eql?(field2)
       end
