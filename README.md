@@ -25,7 +25,7 @@ mysql -f -uusername -p'password' database << EOF
 EOF
 ```
 
-Then execute that file with:
+Then execute that file containing your insertables with:
 ```javascript
 chmod +x file
 ./file
