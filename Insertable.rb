@@ -1,7 +1,7 @@
 require 'ostruct'
 require 'optparse'
 
-class MySQLQuery
+class Insertable
 
   attr_accessor :data
 
@@ -27,24 +27,27 @@ class MySQLQuery
     line.gsub(/: /," : ")
   end
 
-  def convert_to_insertable(filename,mode='r')
+  def convert_to_insertable(filename,fields)
   
     count = 0
     
-    File.open(filename,mode).each do |line|
+    File.open(filename,'r').each do |line|
 
       line = format_line(strip_leading_whitespace(line))
   
       key  = line.split(/ : /)[0]
       val  = line.split(/ : /)[1]
 
+      field1 = fields[0] 
+      field2 = fields[1]
+
       @data[count] = {fields: [], values: []} if @data[count].nil?
-      [@data.dig(count, :fields), @data.dig(count, :values)].each {|a| a.clear} if key.eql?('id')
+      [@data.dig(count, :fields), @data.dig(count, :values)].each {|a| a.clear} if key.eql?(field1)
   
       @data.dig(count, :fields).push key.nil? ? String.new : key.chomp
       @data.dig(count, :values).push val.nil? ? String.new : val.chomp
 
-      count += 1 if key.eql?('userfield')
+      count += 1 if key.eql?(field2)
       
     end
   end
@@ -52,14 +55,17 @@ class MySQLQuery
 end
 
 options = OpenStruct.new 
+fields_opt_help = 'This is the first and the last field of the table you are querying.'
 
 OptionParser.new do |opt|
-  opt.on("--help", TrueClass) {|help| options.help = help }
+  opt.on('--help', TrueClass) {|help| options.help = help }
+  opt.on('--fields f1,f2', Array, fields_opt_help) {|fields| options.fields = fields }
   opt.on('-fFILENAME', '--filename FILENAME', String) {|filename| options.filename = filename }
 end.parse!
 
-mysql_query = MySQLQuery.new
-      
-(options.filename.nil? || options.help) ? mysql_query.usage : mysql_query.convert_to_insertable(options.filename)
+insertable = Insertable.new
+criteria   = !(options.filename.nil? || options.fields.nil? || options.help || !options.fields.count.eql?(2))
 
-puts "#{mysql_query.data[1]}"
+criteria ? insertable.convert_to_insertable(options.filename,options.fields) : insertable.usage
+
+puts "#{insertable.data[1]}"
