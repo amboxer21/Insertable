@@ -1,5 +1,5 @@
 # Insertable
-Convert a MySQL select query into a chain of insertable mysql commands. This is helpful when you want to replicate production data in your development environment but don't want to either: create fake data manually, or load and or dump MySQL tables or databases. ...or you can just use the --where switch(command line option) to replicate what this program does.
+Convert a MySQL select query into a chain of insertable mysql commands. This is helpful when you want to replicate production data in your development environment but don't want to either: create fake data manually, or load and or dump MySQL tables or databases. ...or you can just use the mysqldump --where switch(command line option) to replicate what this program does. 😂
 
 ---
 
