@@ -1,0 +1,39 @@
+aliases:
+  - &logfiles
+    - /var/log/mysql.log
+
+default_env:
+  adapter: mysql2
+  host: prod-host.example.com
+  database: database_name
+  username: username
+  password: password
+  pool: 10
+  encoding: utf8mb4
+  collation: utf8mb4_unicode_ci
+  logfiles: *logfiles
+  logfile: *logfiles
+
+production:
+  database:
+    adapter: mysql2
+    host: prod-host.example.com
+    database: database_name
+    username: username
+    password: password
+    pool: 10
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
+    logfiles: *logfiles
+    logfile: *logfiles
+
+development:
+  database:
+    adapter: mysql2
+    host: dev-host.example.com
+    database: dev-database_name
+    username: username 
+    password: password
+    pool: 50
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
